@@ -12,7 +12,7 @@ namespace Takwene.Api.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         var jwtSection = configuration.GetSection("JwtOptions");
         var jwtOptions = jwtSection.Get<JwtOptions>() ?? throw new InvalidOperationException("JwtOptions configuration is required.");
@@ -23,6 +23,7 @@ public static class ServiceCollectionExtensions
 
         services.AddControllers().AddApplicationPart(typeof(Presentation.AssemblyReference).Assembly);
         services.AddTakweneSwagger();
+        services.AddTakweneCors(configuration, environment);
         services.Configure<JwtOptions>(jwtSection);
         services.AddDbContext<StoreContext>(options => options.UseSqlServer(configuration.GetConnectionString("DefaultSQLConnection")));
         services.AddTakweneIdentity();

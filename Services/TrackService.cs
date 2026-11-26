@@ -31,12 +31,13 @@ public class TrackService(IUnitOFWork unitOfWork) : ITrackService
         int? artistId,
         string? genre,
         string? status,
+        bool statusProvided,
         int pageIndex,
         int pageSize,
         CancellationToken cancellationToken = default)
     {
         var normalizedGenre = string.IsNullOrWhiteSpace(genre) ? null : genre.Trim();
-        var parsedStatus = ParseStatus(status);
+        var parsedStatus = ParseStatus(status, statusProvided);
         ValidateFilters(artistId, normalizedGenre, parsedStatus, pageIndex, pageSize);
 
         var specification = new TrackFilterSpecification(artistId, normalizedGenre, parsedStatus);
@@ -88,6 +89,15 @@ public class TrackService(IUnitOFWork unitOfWork) : ITrackService
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task UpdateStatusAsync(int trackId, string status, CancellationToken cancellationToken = default)
+    {
+        var parsedStatus = ParseStatusName(status);
+        var track = await GetTrackAsync(trackId, cancellationToken);
+        track.Status = parsedStatus;
+        unitOfWork.Tracks.Update(track);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task DeleteAsync(int trackId, CancellationToken cancellationToken = default)
     {
         var track = await GetTrackAsync(trackId, cancellationToken);
@@ -126,15 +136,29 @@ public class TrackService(IUnitOFWork unitOfWork) : ITrackService
         track.ArtistId,
         track.Status.ToString());
 
-    private static TrackStatus? ParseStatus(string? status)
+    private static TrackStatus? ParseStatus(string? status, bool statusProvided)
     {
-        if (string.IsNullOrWhiteSpace(status))
+        if (!statusProvided)
             return null;
 
-        if (!Enum.TryParse<TrackStatus>(status.Trim(), ignoreCase: true, out var parsedStatus) || !Enum.IsDefined(parsedStatus))
-            throw new ValidationException(["Status is invalid."]);
+        var statusName = status?.Trim();
+        if (string.IsNullOrWhiteSpace(statusName) ||
+            !Enum.GetNames<TrackStatus>().Contains(statusName, StringComparer.OrdinalIgnoreCase))
+            throw new ValidationException(["Status must be one of: Draft, Submitted, or Distributed."]);
 
-        return parsedStatus;
+        return Enum.Parse<TrackStatus>(statusName, ignoreCase: true);
+    }
+
+    private static TrackStatus ParseStatusName(string? status)
+    {
+        var statusName = status?.Trim();
+        if (string.IsNullOrWhiteSpace(statusName) ||
+            !Enum.GetNames<TrackStatus>().Contains(statusName, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new ValidationException(["Status must be one of: Draft, Submitted, or Distributed."]);
+        }
+
+        return Enum.Parse<TrackStatus>(statusName, ignoreCase: true);
     }
 
     private static void ValidateTrack(Track track)

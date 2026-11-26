@@ -20,6 +20,7 @@ public class AuthenticationService(
     public async Task<UserResultDTO> RegisterAsync(UserRegisterDTO registerModel, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var gender = ParseGender(registerModel.Gender);
 
         var user = new User
         {
@@ -29,7 +30,7 @@ public class AuthenticationService(
             Email = registerModel.Email.Trim(),
             UserName = registerModel.UserName.Trim(),
             PhoneNumber = registerModel.PhoneNumber,
-            Gender = Gender.Unspecified,
+            Gender = gender,
             UserRole = Role.Editor
         };
 
@@ -91,5 +92,17 @@ public class AuthenticationService(
             expires: DateTime.UtcNow.AddDays(settings.DurationInDays),
             signingCredentials: credentials);
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static Gender ParseGender(int? gender)
+    {
+        if (!gender.HasValue)
+            return Gender.Unspecified;
+
+        var parsedGender = (Gender)gender.Value;
+        if (!Enum.IsDefined(parsedGender))
+            throw new ValidationException(["Gender must be 0 (Unspecified), 1 (Male), or 2 (Female)."]);
+
+        return parsedGender;
     }
 }

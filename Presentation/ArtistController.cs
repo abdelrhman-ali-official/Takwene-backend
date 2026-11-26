@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.Abstractions;
 using Shared.ArtistModels;
@@ -7,6 +8,7 @@ namespace Presentation;
 
 public sealed class ArtistsController(IArtistService artistService) : ApiController
 {
+    [Authorize(AuthenticationSchemes = "Bearer")]
     [HttpPost]
     [ProducesResponseType(typeof(ArtistDTO), (int)HttpStatusCode.Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), (int)HttpStatusCode.BadRequest)]
@@ -28,6 +30,7 @@ public sealed class ArtistsController(IArtistService artistService) : ApiControl
     public async Task<ActionResult<ArtistDTO>> GetById(int id, CancellationToken cancellationToken) =>
         Ok(await artistService.GetByIdAsync(id, cancellationToken));
 
+    [Authorize(AuthenticationSchemes = "Bearer")]
     [HttpPut("{id:int}")]
     [ProducesResponseType((int)HttpStatusCode.NoContent)]
     [ProducesResponseType(typeof(ValidationProblemDetails), (int)HttpStatusCode.BadRequest)]
@@ -39,6 +42,7 @@ public sealed class ArtistsController(IArtistService artistService) : ApiControl
         return NoContent();
     }
 
+    [Authorize(AuthenticationSchemes = "Bearer")]
     [HttpDelete("{id:int}")]
     [ProducesResponseType((int)HttpStatusCode.NoContent)]
     [ProducesResponseType(typeof(Shared.ErrorModels.ErrorDetails), (int)HttpStatusCode.NotFound)]

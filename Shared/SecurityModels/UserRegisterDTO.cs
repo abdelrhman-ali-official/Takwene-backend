@@ -26,4 +26,6 @@ public record UserRegisterDTO
 
     [Phone]
     public string? PhoneNumber { get; init; }
+
+    public int? Gender { get; init; }
 }

@@ -64,6 +64,60 @@ public class TrackDistributionService(IUnitOFWork unitOfWork) : ITrackDistributi
                !await unitOfWork.TrackDistributions.ExistsAsync(trackId, dspId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<DistributionDTO>> DistributeAsync(int trackId, DistributeTrackRequestDTO request, CancellationToken cancellationToken = default)
+    {
+        ValidateId(trackId, "Track ID");
+
+        if (request.DspIds is null || request.DspIds.Count == 0)
+            throw new ValidationException(["At least one DSP ID is required."]);
+
+        var dspIds = request.DspIds.ToArray();
+        if (dspIds.Any(dspId => dspId <= 0))
+            throw new ValidationException(["DSP IDs must be positive integers."]);
+
+        var distinctDspIds = dspIds.Distinct().ToArray();
+        if (distinctDspIds.Length != dspIds.Length)
+            throw new ConflictException("Duplicate DSP IDs are not allowed in one request.");
+
+        if (await unitOfWork.Tracks.GetAsync(trackId, cancellationToken) is null)
+            throw new TrackNotFoundException(trackId);
+
+        var missingDspIds = new List<int>();
+        var dspNames = new Dictionary<int, string>();
+        foreach (var dspId in distinctDspIds)
+        {
+            var dsp = await unitOfWork.DSPs.GetAsync(dspId, cancellationToken);
+            if (dsp is null)
+                missingDspIds.Add(dspId);
+            else
+                dspNames[dspId] = dsp.Name;
+        }
+
+        if (missingDspIds.Count > 0)
+            throw new DspNotFoundException(missingDspIds[0]);
+
+        foreach (var dspId in distinctDspIds)
+        {
+            if (await unitOfWork.TrackDistributions.ExistsAsync(trackId, dspId, cancellationToken))
+                throw new ConflictException("This track is already distributed to one or more of the specified DSPs.");
+        }
+
+        var distributions = distinctDspIds.Select(dspId => new TrackDistribution
+        {
+            TrackId = trackId,
+            DspId = dspId
+        }).ToArray();
+
+        foreach (var distribution in distributions)
+            await unitOfWork.TrackDistributions.AddAsync(distribution, cancellationToken);
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return distributions
+            .Select(distribution => MapToDTO(distribution, dspNames[distribution.DspId]))
+            .ToArray();
+    }
+
     private static void ValidateId(int id, string name)
     {
         if (id <= 0)

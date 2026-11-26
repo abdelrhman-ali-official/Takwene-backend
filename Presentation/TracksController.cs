@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Services.Abstractions;
 using Shared;
 using Shared.TrackModels;
@@ -9,6 +10,7 @@ namespace Presentation;
 
 public sealed class TracksController(ITrackService trackService) : ApiController
 {
+    [Authorize(AuthenticationSchemes = "Bearer")]
     [HttpPost]
     [ProducesResponseType(typeof(TrackDTO), (int)HttpStatusCode.Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), (int)HttpStatusCode.BadRequest)]
@@ -28,8 +30,18 @@ public sealed class TracksController(ITrackService trackService) : ApiController
         [FromQuery] string? status,
         [FromQuery, Range(1, int.MaxValue)] int pageIndex = 1,
         [FromQuery, Range(1, 100)] int pageSize = 10,
-        CancellationToken cancellationToken = default) =>
-        Ok(await trackService.GetAllAsync(artistId, genre, status, pageIndex, pageSize, cancellationToken));
+        CancellationToken cancellationToken = default)
+    {
+        var result = await trackService.GetAllAsync(
+            artistId,
+            genre,
+            status,
+            Request.Query.ContainsKey("status"),
+            pageIndex,
+            pageSize,
+            cancellationToken);
+        return Ok(result);
+    }
 
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(TrackDetailsDTO), (int)HttpStatusCode.OK)]
@@ -37,6 +49,7 @@ public sealed class TracksController(ITrackService trackService) : ApiController
     public async Task<ActionResult<TrackDetailsDTO>> GetById(int id, CancellationToken cancellationToken) =>
         Ok(await trackService.GetByIdAsync(id, cancellationToken));
 
+    [Authorize(AuthenticationSchemes = "Bearer")]
     [HttpPut("{id:int}")]
     [ProducesResponseType((int)HttpStatusCode.NoContent)]
     [ProducesResponseType(typeof(ValidationProblemDetails), (int)HttpStatusCode.BadRequest)]
@@ -48,6 +61,18 @@ public sealed class TracksController(ITrackService trackService) : ApiController
         return NoContent();
     }
 
+    [Authorize(AuthenticationSchemes = "Bearer")]
+    [HttpPatch("{id:int}/status")]
+    [ProducesResponseType((int)HttpStatusCode.NoContent)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(Shared.ErrorModels.ErrorDetails), (int)HttpStatusCode.NotFound)]
+    public async Task<IActionResult> UpdateStatus(int id, TrackStatusRequestDTO request, CancellationToken cancellationToken)
+    {
+        await trackService.UpdateStatusAsync(id, request.Status, cancellationToken);
+        return NoContent();
+    }
+
+    [Authorize(AuthenticationSchemes = "Bearer")]
     [HttpDelete("{id:int}")]
     [ProducesResponseType((int)HttpStatusCode.NoContent)]
     [ProducesResponseType(typeof(Shared.ErrorModels.ErrorDetails), (int)HttpStatusCode.NotFound)]
