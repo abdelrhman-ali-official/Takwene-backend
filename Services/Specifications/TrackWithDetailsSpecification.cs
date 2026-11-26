@@ -5,10 +5,8 @@ namespace Services.Specifications;
 
 public sealed class TrackWithDetailsSpecification : Specifications<Track>
 {
-    public TrackWithDetailsSpecification(int? artistId = null, string? genre = null, TrackStatus? status = null)
-        : base(track => (!artistId.HasValue || track.ArtistId == artistId) &&
-                        (string.IsNullOrWhiteSpace(genre) || track.Genre == genre) &&
-                        (!status.HasValue || track.Status == status))
+    public TrackWithDetailsSpecification(int trackId)
+        : base(track => track.Id == trackId)
     {
         AddInclude(track => track.Artist);
         AddInclude("TrackDistributions.DSP");
