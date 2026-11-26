@@ -1,4 +1,6 @@
 using Domain.Exceptions;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Shared.ErrorModels;
 using System.Net;
 
@@ -26,6 +28,8 @@ public class GlobalErrorHandlingMiddleware(RequestDelegate next, ILogger<GlobalE
                 ValidationException => (HttpStatusCode.BadRequest, "The request is invalid."),
                 UnAuthorizedException or UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Authentication failed."),
                 EntityNotFoundException => (HttpStatusCode.NotFound, "The requested resource was not found."),
+                ConflictException => (HttpStatusCode.Conflict, "The request conflicts with existing data."),
+                DbUpdateException { InnerException: SqlException { Number: 2601 or 2627 or 547 } } => (HttpStatusCode.Conflict, "The request conflicts with existing data."),
                 _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred.")
             };
             await WriteErrorAsync(httpContext, statusCode, message);
