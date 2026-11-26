@@ -7,5 +7,6 @@ public class TrackDistributionRepository : GenericRepository<TrackDistribution, 
 {
     private readonly StoreContext _context;
     public TrackDistributionRepository(StoreContext context) : base(context) => _context = context;
-    public Task<bool> ExistsAsync(int trackId, int dspId, CancellationToken cancellationToken = default) => _context.TrackDistributions.AnyAsync(x => x.TrackId == trackId && x.DspId == dspId, cancellationToken);
+    public Task<bool> ExistsAsync(int trackId, int dspId, CancellationToken cancellationToken = default) =>
+        _context.TrackDistributions.AnyAsync(x => x.TrackId == trackId && x.DspId == dspId, cancellationToken);
 }
