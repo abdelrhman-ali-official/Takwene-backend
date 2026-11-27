@@ -4,6 +4,6 @@ namespace Shared.TrackModels;
 
 public sealed record TrackStatusRequestDTO
 {
-    [Required]
-    public string Status { get; init; } = string.Empty;
+    [Range(1, 3, ErrorMessage = "Status must be 1 (Draft), 2 (Submitted), or 3 (Distributed).")]
+    public int Status { get; init; }
 }

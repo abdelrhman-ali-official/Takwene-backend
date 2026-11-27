@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -21,6 +22,12 @@ public static class SwaggerExtensions
                 In = ParameterLocation.Header
             });
             options.OperationFilter<BearerSecurityOperationFilter>();
+            options.MapType<DateOnly>(() => new OpenApiSchema
+            {
+                Type = "string",
+                Format = "date",
+                Example = new OpenApiString("2003-09-21")
+            });
         });
         return services;
     }

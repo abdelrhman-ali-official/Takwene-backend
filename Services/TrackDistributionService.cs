@@ -9,31 +9,6 @@ namespace Services;
 
 public class TrackDistributionService(IUnitOFWork unitOfWork) : ITrackDistributionService
 {
-    public async Task<DistributionDTO> CreateAsync(int trackId, DistributionRequestDTO request, CancellationToken cancellationToken = default)
-    {
-        ValidateId(trackId, "Track ID");
-        ValidateId(request.DspId, "DSP ID");
-
-        if (await unitOfWork.Tracks.GetAsync(trackId, cancellationToken) is null)
-            throw new TrackNotFoundException(trackId);
-        if (await unitOfWork.DSPs.GetAsync(request.DspId, cancellationToken) is null)
-            throw new DspNotFoundException(request.DspId);
-        if (await unitOfWork.TrackDistributions.ExistsAsync(trackId, request.DspId, cancellationToken))
-            throw new ConflictException("This track is already distributed to the specified DSP.");
-
-        var distribution = new TrackDistribution
-        {
-            TrackId = trackId,
-            DspId = request.DspId
-        };
-        await unitOfWork.TrackDistributions.AddAsync(distribution, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-
-        var dsp = await unitOfWork.DSPs.GetAsync(request.DspId, cancellationToken)
-            ?? throw new DspNotFoundException(request.DspId);
-        return MapToDTO(distribution, dsp.Name);
-    }
-
     public async Task<IReadOnlyList<DistributionDTO>> GetForTrackAsync(int trackId, CancellationToken cancellationToken = default)
     {
         ValidateId(trackId, "Track ID");

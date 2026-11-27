@@ -51,7 +51,7 @@ public class ArtistService(IUnitOFWork unitOfWork) : IArtistService
     {
         var artist = await GetArtistAsync(artistId, cancellationToken);
         if (await unitOfWork.Artists.HasTracksAsync(artistId, cancellationToken))
-            throw new ConflictException("An artist with tracks cannot be deleted.");
+            throw new ArtistHasTracksException();
 
         unitOfWork.Artists.Delete(artist);
         await unitOfWork.SaveChangesAsync(cancellationToken);

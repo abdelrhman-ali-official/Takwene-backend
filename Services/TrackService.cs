@@ -89,9 +89,12 @@ public class TrackService(IUnitOFWork unitOfWork) : ITrackService
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task UpdateStatusAsync(int trackId, string status, CancellationToken cancellationToken = default)
+    public async Task UpdateStatusAsync(int trackId, int status, CancellationToken cancellationToken = default)
     {
-        var parsedStatus = ParseStatusName(status);
+        var parsedStatus = (TrackStatus)status;
+        if (!Enum.IsDefined(parsedStatus))
+            throw new ValidationException(["Status must be 1 (Draft), 2 (Submitted), or 3 (Distributed)."]);
+
         var track = await GetTrackAsync(trackId, cancellationToken);
         track.Status = parsedStatus;
         unitOfWork.Tracks.Update(track);
@@ -145,18 +148,6 @@ public class TrackService(IUnitOFWork unitOfWork) : ITrackService
         if (string.IsNullOrWhiteSpace(statusName) ||
             !Enum.GetNames<TrackStatus>().Contains(statusName, StringComparer.OrdinalIgnoreCase))
             throw new ValidationException(["Status must be one of: Draft, Submitted, or Distributed."]);
-
-        return Enum.Parse<TrackStatus>(statusName, ignoreCase: true);
-    }
-
-    private static TrackStatus ParseStatusName(string? status)
-    {
-        var statusName = status?.Trim();
-        if (string.IsNullOrWhiteSpace(statusName) ||
-            !Enum.GetNames<TrackStatus>().Contains(statusName, StringComparer.OrdinalIgnoreCase))
-        {
-            throw new ValidationException(["Status must be one of: Draft, Submitted, or Distributed."]);
-        }
 
         return Enum.Parse<TrackStatus>(statusName, ignoreCase: true);
     }
